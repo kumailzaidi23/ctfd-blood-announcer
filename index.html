@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samurai CTF Blood Announcer</title>
+    <link rel="stylesheet" href="static/css/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩸</text></svg>">
+</head>
+<body>
+    <div class="background-container">
+        <div class="overlay"></div>
+    </div>
+    
+    <header class="samurai-header">
+        <div class="header-banner">
+            <div class="samurai-emblem left"></div>
+            <div class="logo-container">
+                <h1 class="site-title"><span class="kanji"></span> <span>AIRTECH CTF </span></h1>
+            </div>
+            <div class="samurai-emblem right"></div>
+        </div>
+    </header>
+    
+    <main>
+        <div class="scoreboard-container">
+            <h2 class="scoreboard-title"><span class="kanji"> </span><span>FIRST BLOODS</span></h2>
+            
+            <div class="filter-controls">
+                <button id="refresh-btn" class="samurai-btn"><span class="btn-icon">⟳</span> Refresh</button>
+            </div>
+            
+            <div class="scoreboard-wrapper">
+                <table id="scoreboard-table">
+                    <thead>
+                        <tr>
+                            <th>Challenge</th>
+                            <th>Category</th>
+                            <th>First Blood</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoreboard-body">
+                        <!-- Blood data will be loaded here -->
+                        <tr class="loading-row">
+                            <td colspan="4">Loading first blood data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Team blood stats section -->
+            <div id="blood-stats" class="blood-stats">
+                <!-- Team blood statistics will be loaded here -->
+                <div class="loading">Loading team statistics...</div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="samurai-footer">
+        <div class="footer-pattern"></div>
+        <p>Powered by <span class="kanji-small">侍</span> Samurai CTF • Theme by <a href="#" target="_blank">Claude Samurai</a></p>
+    </footer>
+
+    <!-- Hidden audio element for blood sound -->
+    <audio id="blood-sound-element" preload="auto" style="display:none;">
+        <source src="/scoreboard/static/sounds/blood.mp3" type="audio/mpeg">
+        <source src="scoreboard/static/sounds/blood.mp3" type="audio/mpeg">
+        <source src="/static/sounds/blood.mp3" type="audio/mpeg">
+    </audio>
+
+    <script src="static/js/script.js"></script>
+</body>
+</html> 

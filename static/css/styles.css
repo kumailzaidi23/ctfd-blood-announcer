@@ -1,0 +1,862 @@
+:root {
+    --primary-color: #b20000; /* Deeper red - traditional Japanese color */
+    --secondary-color: #000000; /* Black */
+    --accent-color: #c5a03f; /* Rich gold */
+    --bg-color: #0c0c0c;
+    --text-color: #f5f5f5;
+    --table-bg: rgba(0, 0, 0, 0.8);
+    --row-hover: rgba(178, 0, 0, 0.2);
+    --border-color: rgba(197, 160, 63, 0.5);
+    --blood-color: rgba(178, 0, 0, 0.9);
+    --table-border: #3a3a3a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+}
+
+.background-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-image: url('https://images.unsplash.com/photo-1530214877370-8f91905e40e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    background-image: 
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path fill="none" stroke="%23181818" stroke-width="1" d="M20,20 L80,80 M25,20 L85,80 M15,20 L75,80 M20,15 L80,75 M20,25 L80,85"/><path fill="none" stroke="%23181818" stroke-width="1" d="M80,20 L20,80 M85,20 L25,80 M75,20 L15,80 M80,15 L20,75 M80,25 L20,85"/></svg>'),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150"><path fill="none" stroke="%23111111" stroke-width="1" d="M10,75 L140,75 M75,10 L75,140"/></svg>');
+    background-size: 100px 100px, 150px 150px;
+}
+
+/* Header Styles */
+.samurai-header {
+    padding: 1.5rem 0;
+    text-align: center;
+    position: relative;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%);
+}
+
+.header-banner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.samurai-emblem {
+    width: 80px;
+    height: 80px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin: 0 2rem;
+}
+
+.samurai-emblem.left {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%23b20000" stroke-width="2"/><path d="M30,30 L70,70 M70,30 L30,70" stroke="%23b20000" stroke-width="2"/></svg>');
+}
+
+.samurai-emblem.right {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%23b20000" stroke-width="2"/><path d="M30,30 L70,70 M70,30 L30,70" stroke="%23b20000" stroke-width="2"/></svg>');
+}
+
+.logo-container {
+    display: inline-block;
+    position: relative;
+}
+
+.site-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    position: relative;
+}
+
+.site-title:before, .site-title:after {
+    content: '';
+    height: 2px;
+    width: 40px;
+    background-color: var(--accent-color);
+    position: absolute;
+    top: 50%;
+}
+
+.site-title:before {
+    left: -50px;
+}
+
+.site-title:after {
+    right: -50px;
+}
+
+.site-title span {
+    color: var(--text-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.site-title .kanji {
+    color: var(--accent-color);
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    margin-right: 0.5rem;
+}
+
+/* Main Content Styles */
+main {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.scoreboard-container {
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 2rem;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.7);
+    position: relative;
+    overflow: hidden;
+}
+
+.scoreboard-container:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(to right, transparent, var(--primary-color), transparent);
+}
+
+.scoreboard-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.scoreboard-title span {
+    color: var(--text-color);
+    font-size: 1.8rem;
+}
+
+.scoreboard-title .kanji {
+    color: var(--accent-color);
+    font-size: 2rem;
+    font-weight: 900;
+}
+
+.scoreboard-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(to right, transparent, var(--primary-color), transparent);
+}
+
+/* Filter Controls */
+.filter-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.search-container {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+    max-width: 400px;
+}
+
+#challenge-search {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: var(--text-color);
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+.samurai-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    /* Japanese-inspired angled corners */
+    clip-path: polygon(5% 0%, 95% 0%, 100% 15%, 100% 85%, 95% 100%, 5% 100%, 0% 85%, 0% 15%);
+}
+
+.samurai-btn:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: all 0.4s ease;
+}
+
+.samurai-btn:hover {
+    background-color: #8e0000;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.samurai-btn:hover:before {
+    left: 100%;
+}
+
+.samurai-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
+}
+
+.btn-icon {
+    display: inline-block;
+    margin-right: 5px;
+    font-size: 1.1rem;
+}
+
+/* Table Styles */
+.scoreboard-wrapper {
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+    border-radius: 5px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3));
+    padding: 0.5rem;
+}
+
+#scoreboard-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 0.5rem;
+    background-color: var(--table-bg);
+    border: 1px solid var(--table-border);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#scoreboard-table th,
+#scoreboard-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--table-border);
+}
+
+#scoreboard-table th {
+    background: linear-gradient(to bottom, var(--primary-color) 0%, #8e0000 100%);
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+#scoreboard-table th:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent-color), transparent);
+}
+
+#scoreboard-table tbody tr {
+    transition: all 0.3s ease;
+}
+
+#scoreboard-table tbody tr:hover {
+    background-color: var(--row-hover);
+}
+
+/* First blood styling */
+#scoreboard-table tbody tr td:nth-child(3) {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+/* Challenge name styling */
+#scoreboard-table tbody tr td:first-child {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* Blood drop icon */
+#scoreboard-table tbody tr td:nth-child(3)::before {
+    content: '🩸 ';
+    margin-right: 5px;
+}
+
+.loading-row td {
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Blood Announcement Styles */
+.blood-announcement {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 350px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #7c0000 100%);
+    border: 2px solid var(--accent-color);
+    border-radius: 3px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.7);
+    color: white;
+    overflow: hidden;
+    animation: slide-in 0.5s ease-out forwards;
+    /* Japanese-inspired styling */
+    clip-path: polygon(0% 0%, 97% 0%, 100% 3%, 100% 97%, 97% 100%, 3% 100%, 0% 97%, 0% 3%);
+}
+
+.announcement-content {
+    padding: 20px;
+    position: relative;
+}
+
+.announcement-content:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent-color), transparent);
+}
+
+.announcement-content:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent-color), transparent);
+}
+
+.announcement-header {
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 10px;
+}
+
+.blood-emoji {
+    font-size: 1.8rem;
+    animation: pulse-emoji 1s infinite alternate;
+    display: inline-block;
+    transform-origin: center;
+}
+
+.announcement-body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.team-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.challenge-name {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.challenge-points {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.solve-time {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* Blood announcement animations */
+@keyframes slide-in {
+    0% {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.fade-out {
+    animation: fade-out 1s forwards;
+}
+
+@keyframes fade-out {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse-emoji {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.2);
+    }
+}
+
+/* Footer Styles */
+.samurai-footer {
+    text-align: center;
+    padding: 2rem 0;
+    margin-top: 3rem;
+    position: relative;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.footer-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10" viewBox="0 0 20 10"><path fill="none" stroke="%23b20000" stroke-width="1" d="M0,5 C5,0 15,0 20,5 C15,10 5,10 0,5 Z"/></svg>');
+    background-repeat: repeat-x;
+    background-size: 20px 10px;
+}
+
+footer a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+footer a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+footer a:hover {
+    color: var(--primary-color);
+}
+
+footer a:hover::after {
+    width: 100%;
+}
+
+/* Blood Stats Styles */
+.blood-stats {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    position: relative;
+}
+
+.blood-stats:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--accent-color), transparent);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.team-stats {
+    background-color: rgba(20, 20, 20, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.team-stats:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(178, 0, 0, 0.3);
+}
+
+.team-stats-header {
+    background: linear-gradient(to right, var(--primary-color), #8e0000);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.team-name-header {
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.blood-count {
+    background-color: var(--accent-color);
+    color: black;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.challenge-list {
+    list-style: none;
+    padding: 1rem;
+    margin: 0;
+}
+
+.challenge-list li {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.challenge-list li:last-child {
+    border-bottom: none;
+}
+
+.challenge-name {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.challenge-category {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    background-color: rgba(225, 184, 13, 0.2);
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    .site-title {
+        font-size: 2.5rem;
+    }
+    
+    .site-title span {
+        font-size: 1.8rem;
+    }
+    
+    .site-title .kanji {
+        font-size: 2.2rem;
+    }
+    
+    .scoreboard-title {
+        font-size: 2rem;
+    }
+    
+    .scoreboard-title span {
+        font-size: 1.5rem;
+    }
+    
+    .scoreboard-title .kanji {
+        font-size: 1.7rem;
+    }
+    
+    .samurai-emblem {
+        width: 50px;
+        height: 50px;
+        margin: 0 1rem;
+    }
+    
+    .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-container {
+        max-width: 100%;
+    }
+    
+    .blood-announcement {
+        width: calc(100% - 40px);
+        max-width: 350px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .site-title:before, .site-title:after {
+        width: 20px;
+    }
+    
+    .site-title:before {
+        left: -30px;
+    }
+    
+    .site-title:after {
+        right: -30px;
+    }
+}
+
+/* Animation for loading */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.loading-row td {
+    animation: pulse 1.5s infinite;
+}
+
+/* Animation for blood drop */
+@keyframes drip {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(2px); }
+    100% { transform: translateY(0); }
+}
+
+#scoreboard-table tbody tr td:nth-child(3)::before {
+    display: inline-block;
+    animation: drip 2s infinite;
+}
+
+/* Announcer Info Styles */
+.announcer-info {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+.announcer-info h3 {
+    color: var(--accent-color);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+.announcer-info p {
+    margin-bottom: 0.8rem;
+    line-height: 1.6;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.announcer-info p:last-child {
+    margin-bottom: 0;
+}
+
+/* Blood Stats Styles */
+.blood-stats {
+    margin-top: 3rem;
+    padding: 1rem;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+.blood-stats .loading,
+.blood-stats .no-stats {
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+    animation: pulse 1.5s infinite;
+}
+
+.stats-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.stats-header h3 {
+    color: var(--accent-color);
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.stats-header p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.team-stats {
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.team-stats:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(196, 30, 58, 0.3);
+}
+
+.team-stats-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.team-name-header {
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.blood-count {
+    background-color: var(--accent-color);
+    color: black;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.challenge-list {
+    list-style: none;
+    padding: 1rem;
+    margin: 0;
+}
+
+.challenge-list li {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.challenge-list li:last-child {
+    border-bottom: none;
+}
+
+.challenge-name {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.challenge-category {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    background-color: rgba(225, 184, 13, 0.2);
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.kanji-small {
+    font-size: 1.2rem;
+    color: var(--accent-color);
+    font-weight: 900;
+    vertical-align: middle;
+    margin: 0 2px;
+} 
