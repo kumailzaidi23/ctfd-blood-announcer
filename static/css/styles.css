@@ -1,3 +1,15 @@
+@font-face {
+    font-family: samuraifont;
+    src: url(../fonts/sakurata-font/Sakurata-DOGnE.otf);
+  }
+  
+  @font-face {
+    font-family: luckyrookie;
+    src: url(../fonts/luckyrookie/LuckyRookie-Regular.ttf);
+  }
+  
+
+
 :root {
     --primary-color: #b20000; /* Deeper red - traditional Japanese color */
     --secondary-color: #000000; /* Black */
@@ -18,7 +30,7 @@
 }
 
 body {
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: 'luckyrookie';
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
@@ -27,6 +39,11 @@ body {
     min-height: 100vh;
 }
 
+h1, h2 {
+    font-family: 'samuraifont';
+}
+
+
 .background-container {
     position: fixed;
     top: 0;
@@ -34,9 +51,9 @@ body {
     width: 100%;
     height: 100%;
     z-index: -1;
-    background-image: url('https://images.unsplash.com/photo-1530214877370-8f91905e40e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+    background-image: url('../img/background1.jpg');
     background-size: cover;
-    background-position: center;
+    /* background-position: center; */
     background-repeat: no-repeat;
 }
 
@@ -47,9 +64,9 @@ body {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.85);
-    background-image: 
+    /* background-image: 
         url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path fill="none" stroke="%23181818" stroke-width="1" d="M20,20 L80,80 M25,20 L85,80 M15,20 L75,80 M20,15 L80,75 M20,25 L80,85"/><path fill="none" stroke="%23181818" stroke-width="1" d="M80,20 L20,80 M85,20 L25,80 M75,20 L15,80 M80,15 L20,75 M80,25 L20,85"/></svg>'),
-        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150"><path fill="none" stroke="%23111111" stroke-width="1" d="M10,75 L140,75 M75,10 L75,140"/></svg>');
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150"><path fill="none" stroke="%23111111" stroke-width="1" d="M10,75 L140,75 M75,10 L75,140"/></svg>'); */
     background-size: 100px 100px, 150px 150px;
 }
 
@@ -67,6 +84,7 @@ body {
     justify-content: center;
     align-items: center;
     position: relative;
+    padding: 1rem 0;
 }
 
 .samurai-emblem {
@@ -76,15 +94,28 @@ body {
     background-repeat: no-repeat;
     background-position: center;
     margin: 0 2rem;
+    position: relative;
+    top: 4px;
+    opacity: 0;
+    animation: fadeIn 1s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
 }
 
 .samurai-emblem.left {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%23b20000" stroke-width="2"/><path d="M30,30 L70,70 M70,30 L30,70" stroke="%23b20000" stroke-width="2"/></svg>');
+    background-image: url('../img/sideicon.png');
 }
 
-.samurai-emblem.right {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%23b20000" stroke-width="2"/><path d="M30,30 L70,70 M70,30 L30,70" stroke="%23b20000" stroke-width="2"/></svg>');
-}
+/* .samurai-emblem.right {
+    background-image: url('../img/sideiconpng');
+} */
 
 .logo-container {
     display: inline-block;
@@ -106,14 +137,17 @@ body {
     position: relative;
 }
 
-.site-title:before, .site-title:after {
+
+/* commented yellow line along the title */
+/* .site-title:before,  */
+/* .site-title:after {
     content: '';
     height: 2px;
     width: 40px;
     background-color: var(--accent-color);
     position: absolute;
     top: 50%;
-}
+} */
 
 .site-title:before {
     left: -50px;
@@ -129,7 +163,7 @@ body {
     font-weight: 700;
 }
 
-.site-title .kanji {
+.site-title .kanji{
     color: var(--accent-color);
     font-size: 3rem;
     font-weight: 900;
@@ -854,9 +888,10 @@ footer a:hover::after {
 }
 
 .kanji-small {
-    font-size: 1.2rem;
+    /* font-family: 'samuraifont'; */
+    font-size: 1rem;
     color: var(--accent-color);
-    font-weight: 900;
+    /* font-weight: 900; */
     vertical-align: middle;
     margin: 0 2px;
 } 
