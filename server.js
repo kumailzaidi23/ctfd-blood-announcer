@@ -2,17 +2,21 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
+const http = require('http');
+const socketIo = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
 const PORT = process.env.PORT || 3000;
 const CTFD_URL = 'https://airtech.aucssociety.com';
 
-// CTFd credentials
-const CTFD_USERNAME = 'admin';
-const CTFD_PASSWORD = 'FFWbT_V_78Dd13';
+// CTFd credentials - using token instead of username/password
+const CTFD_TOKEN = process.env.CTFD_TOKEN || 'REDACTED';
 
 // Set default timeout and handle rate limiting
-axios.defaults.timeout = 10000;
+axios.defaults.timeout = 1000;
 
 // Middleware
 app.use(cors());
@@ -24,84 +28,18 @@ app.use('/scoreboard/static', express.static(path.join(__dirname, 'scoreboard', 
 // Cache for teams and challenges data
 let teamsCache = null;
 let challengesCache = null;
+let lastSolvesData = null;
 
-// Function to get authentication cookie
-let authCookie = null;
-async function getAuthCookie() {
-    if (authCookie) return authCookie;
-    
-    try {
-        console.log('Getting new auth cookie...');
-        
-        // First, get CSRF token
-        const csrfResponse = await axios.get(`${CTFD_URL}/login`, {
-            headers: {
-                'Accept': 'text/html,application/xhtml+xml,application/xml',
-                'User-Agent': 'SamuraiBloodAnnouncer/1.0'
-            }
-        });
-        
-        // Extract CSRF token from response
-        const csrfMatch = csrfResponse.data.match(/name="nonce"[^>]*value="([^"]+)"/);
-        if (!csrfMatch) {
-            throw new Error('Could not extract CSRF token');
-        }
-        const csrfToken = csrfMatch[1];
-        
-        // Get cookies from response
-        const cookies = csrfResponse.headers['set-cookie'];
-        if (!cookies) {
-            throw new Error('No cookies in response');
-        }
-        
-        // Now login with the CSRF token
-        const loginResponse = await axios.post(
-            `${CTFD_URL}/login`, 
-            `name=${CTFD_USERNAME}&password=${CTFD_PASSWORD}&_submit=Submit&nonce=${csrfToken}`,
-            {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'User-Agent': 'SamuraiBloodAnnouncer/1.0',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml',
-                    'Cookie': cookies.join('; ')
-                },
-                maxRedirects: 0,
-                validateStatus: status => status >= 200 && status < 400
-            }
-        );
-        
-        // Get authentication cookie from response
-        const authCookies = loginResponse.headers['set-cookie'];
-        if (!authCookies) {
-            throw new Error('No authentication cookies in response');
-        }
-        
-        authCookie = authCookies.join('; ');
-        console.log('Authentication successful');
-        return authCookie;
-    } catch (error) {
-        console.error('Authentication error:', error.message);
-        if (error.response) {
-            console.error('Status:', error.response.status);
-            console.error('Headers:', error.response.headers);
-        }
-        throw error;
-    }
-}
-
-// Function to handle CTFd API requests with proper authentication
+// Function to handle CTFd API requests with token authentication
 async function ctfdApiRequest(endpoint) {
     try {
-        // Get authentication cookie
-        const cookie = await getAuthCookie();
-        
-        // Make API request with authentication
+        // Make API request with token authentication
         const response = await axios.get(`${CTFD_URL}${endpoint}`, {
             headers: {
                 'Accept': 'application/json',
                 'User-Agent': 'SamuraiBloodAnnouncer/1.0',
                 'Content-Type': 'application/json',
-                'Cookie': cookie
+                'Authorization': `Token ${CTFD_TOKEN}`
             }
         });
         
@@ -112,11 +50,9 @@ async function ctfdApiRequest(endpoint) {
             console.error('Response status:', error.response.status);
             console.error('Response data:', error.response.data);
             
-            // If authentication expired, reset the cookie and try again
+            // If authentication expired or invalid token
             if (error.response.status === 401 || error.response.status === 403) {
-                authCookie = null;
-                // Try one more time
-                return ctfdApiRequest(endpoint);
+                console.error('Authentication token error - please check your CTFD_TOKEN');
             }
         }
         throw error;
@@ -270,24 +206,8 @@ function getTeamNameFromSolve(solve, teamsMap) {
            solve.user_id ? `User ${solve.user_id}` : 'Unknown Team';
 }
 
-// Endpoint to get all challenges
-app.get('/api/challenges', async (req, res) => {
-    try {
-        const challenges = await getChallenges();
-        res.json({
-            success: true,
-            data: Object.values(challenges)
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            error: 'Failed to fetch challenge data',
-            message: error.message
-        });
-    }
-});
-
-// Enhanced endpoint to get all solves with team names and challenge details
-app.get('/api/solves', async (req, res) => {
+// Enhanced function to get all solves with team names and challenge details
+async function getEnhancedSolves() {
     try {
         // Get the raw solves data
         const solvesData = await ctfdApiRequest('/api/v1/submissions?type=correct');
@@ -310,20 +230,15 @@ app.get('/api/solves', async (req, res) => {
             };
         });
         
-        res.json({
-            success: true,
-            data: enhancedSolves
-        });
+        return enhancedSolves;
     } catch (error) {
-        res.status(500).json({ 
-            error: 'Failed to fetch solve data',
-            message: error.message
-        });
+        console.error('Error in getEnhancedSolves:', error.message);
+        throw error;
     }
-});
+}
 
-// Endpoint to get first solves (bloods)
-app.get('/api/firstbloods', async (req, res) => {
+// Function to get first solves (bloods)
+async function getFirstBloods() {
     try {
         console.log("Fetching first bloods data...");
         
@@ -332,7 +247,7 @@ app.get('/api/firstbloods', async (req, res) => {
         
         if (!submissionsResponse || !submissionsResponse.data) {
             console.error("No submissions data returned from API:", submissionsResponse);
-            return res.status(500).json({ error: 'Failed to fetch submissions' });
+            throw new Error('Failed to fetch submissions');
         }
         
         // Get challenges and teams data for enrichment
@@ -370,9 +285,104 @@ app.get('/api/firstbloods', async (req, res) => {
         firstBloods.sort((a, b) => new Date(a.date) - new Date(b.date));
         
         console.log(`Returning ${firstBloods.length} first bloods`);
+        return firstBloods;
+    } catch (error) {
+        console.error("Error in getFirstBloods:", error);
+        throw error;
+    }
+}
+
+// Function to fetch scoreboard data
+async function getScoreboard() {
+    try {
+        const data = await ctfdApiRequest('/api/v1/scoreboard');
+        return data;
+    } catch (error) {
+        console.error('Error fetching scoreboard:', error.message);
+        throw error;
+    }
+}
+
+// Function to check for new solves and emit events
+async function checkForNewSolves() {
+    try {
+        // Get the latest solves
+        const currentSolves = await getEnhancedSolves();
+        
+        // If this is the first run, just store the data
+        if (!lastSolvesData) {
+            lastSolvesData = currentSolves;
+            return {
+                newSolves: [],
+                isFirstRun: true
+            };
+        }
+        
+        // Find new solves by comparing with the previous data
+        // We'll use a map of ids for easy comparison
+        const lastSolvesMap = new Map();
+        lastSolvesData.forEach(solve => {
+            lastSolvesMap.set(solve.id, solve);
+        });
+        
+        // Find solves that are in current but not in last
+        const newSolves = currentSolves.filter(solve => !lastSolvesMap.has(solve.id));
+        
+        // Update the stored data
+        lastSolvesData = currentSolves;
+        
+        return {
+            newSolves,
+            isFirstRun: false
+        };
+    } catch (error) {
+        console.error('Error checking for new solves:', error.message);
+        return {
+            newSolves: [],
+            error: error.message
+        };
+    }
+}
+
+// Endpoint to get all challenges
+app.get('/api/challenges', async (req, res) => {
+    try {
+        const challenges = await getChallenges();
+        res.json({
+            success: true,
+            data: Object.values(challenges)
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            error: 'Failed to fetch challenge data',
+            message: error.message
+        });
+    }
+});
+
+// Enhanced endpoint to get all solves with team names and challenge details
+app.get('/api/solves', async (req, res) => {
+    try {
+        const enhancedSolves = await getEnhancedSolves();
+        
+        res.json({
+            success: true,
+            data: enhancedSolves
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            error: 'Failed to fetch solve data',
+            message: error.message
+        });
+    }
+});
+
+// Endpoint to get first solves (bloods)
+app.get('/api/firstbloods', async (req, res) => {
+    try {
+        const firstBloods = await getFirstBloods();
         res.json(firstBloods);
     } catch (error) {
-        console.error("Error in firstbloods endpoint:", error);
         res.status(500).json({
             error: 'Failed to fetch first bloods',
             message: error.message
@@ -399,7 +409,7 @@ app.get('/api/teams', async (req, res) => {
 // Get scoreboard
 app.get('/api/scoreboard', async (req, res) => {
     try {
-        const data = await ctfdApiRequest('/api/v1/scoreboard');
+        const data = await getScoreboard();
         res.json(data);
     } catch (error) {
         res.status(500).json({ 
@@ -444,7 +454,7 @@ app.get('/api/mock/solves', (req, res) => {
 app.post('/api/reset-cache', (req, res) => {
     teamsCache = null;
     challengesCache = null;
-    authCookie = null;
+    lastSolvesData = null;
     
     res.json({
         success: true,
@@ -690,15 +700,111 @@ app.get('/test-sound', (req, res) => {
     `);
 });
 
+// WebSocket connection handler
+io.on('connection', (socket) => {
+    console.log(`Client connected: ${socket.id}`);
+    
+    // Send initial data to client upon connection
+    Promise.all([
+        getEnhancedSolves(),
+        getFirstBloods(),
+        getScoreboard()
+    ]).then(([solves, firstBloods, scoreboard]) => {
+        socket.emit('initialData', {
+            solves,
+            firstBloods,
+            scoreboard
+        });
+    }).catch(error => {
+        console.error('Error sending initial data:', error);
+        socket.emit('error', { message: 'Failed to load initial data' });
+    });
+    
+    // Handle disconnect
+    socket.on('disconnect', () => {
+        console.log(`Client disconnected: ${socket.id}`);
+    });
+});
+
+// Setup polling for new data
+const UPDATE_INTERVAL = 5000; // 5 seconds
+
+// Function to fetch and broadcast updates to all clients
+async function fetchAndBroadcastUpdates() {
+    try {
+        console.log('Checking for updates...');
+        
+        // Check for new solves
+        const solvesResult = await checkForNewSolves();
+        
+        // Only fetch other data if there are new solves or this is the first run
+        if (solvesResult.newSolves.length > 0 || solvesResult.isFirstRun) {
+            console.log(solvesResult.isFirstRun ? 'First run, sending data' : `Found ${solvesResult.newSolves.length} new solves`);
+            
+            // Fetch additional data
+            const [firstBloods, scoreboard] = await Promise.all([
+                getFirstBloods(),
+                getScoreboard()
+            ]);
+            
+            // Broadcast to all connected clients
+            io.emit('dataUpdate', {
+                newSolves: solvesResult.newSolves,
+                allSolves: lastSolvesData,
+                firstBloods,
+                scoreboard
+            });
+            
+            // If there are new first bloods, emit a special event
+            if (solvesResult.newSolves.length > 0) {
+                // Find first bloods among new solves
+                const newFirstBloods = firstBloods.filter(blood => 
+                    solvesResult.newSolves.some(solve => 
+                        solve.challenge_id === blood.id && 
+                        getTeamNameFromSolve(solve, {}) === blood.team
+                    )
+                );
+                
+                if (newFirstBloods.length > 0) {
+                    console.log(`Emitting ${newFirstBloods.length} new first bloods`);
+                    io.emit('newFirstBloods', newFirstBloods);
+                }
+            }
+        } else {
+            console.log('No new solves detected');
+        }
+    } catch (error) {
+        console.error('Error in fetchAndBroadcastUpdates:', error);
+        io.emit('error', { message: 'Failed to update data' });
+    }
+}
+
+// Initialize data and start polling
+async function initializeData() {
+    try {
+        // Preload data to cache
+        await getTeams();
+        await getChallenges();
+        
+        // Set up polling interval
+        setInterval(fetchAndBroadcastUpdates, UPDATE_INTERVAL);
+        
+        // Run once immediately
+        await fetchAndBroadcastUpdates();
+    } catch (error) {
+        console.error('Failed to initialize data:', error);
+    }
+}
+
 // Start the server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`
     ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ 
     初血 SAMURAI BLOOD ANNOUNCER RUNNING ON PORT ${PORT}
+    WebSocket integration active - real-time updates enabled
     ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️
     `);
     
-    // Initialize cache
-    getTeams().catch(err => console.error('Failed to initialize teams cache:', err.message));
-    getChallenges().catch(err => console.error('Failed to initialize challenges cache:', err.message));
-}); 
+    // Initialize data collection
+    initializeData();
+});
