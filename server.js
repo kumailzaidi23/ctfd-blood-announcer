@@ -323,7 +323,7 @@ async function getFirstBloods() {
         });
         
         // Sort by date
-        formattedBloods.sort((a, b) => new Date(a.date) - new Date(b.date));
+        formattedBloods.sort((a, b) => new Date(b.date) - new Date(a.date));
         
         // Log detailed information
         console.log('\nFirst bloods summary:');

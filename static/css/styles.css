@@ -39,7 +39,7 @@ body {
     min-height: 100vh;
 }
 
-h1, h2 {
+h1, h2, h3 {
     font-family: 'samuraifont';
 }
 
@@ -56,6 +56,8 @@ h1, h2 {
     /* background-position: center; */
     background-repeat: no-repeat;
 }
+
+
 
 .overlay {
     position: absolute;
@@ -96,8 +98,8 @@ h1, h2 {
     margin: 0 2rem;
     position: relative;
     top: 4px;
-    opacity: 0;
-    animation: fadeIn 1s ease-out forwards;
+    /* opacity: 10; */
+    animation: none;
 }
 
 @keyframes fadeIn {
@@ -521,8 +523,9 @@ main {
     padding: 2rem 0;
     margin-top: 3rem;
     position: relative;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.6);
+    font-family: 'samuraifont', cursive;
 }
 
 .footer-pattern {
@@ -613,7 +616,9 @@ footer a:hover::after {
 
 .team-name-header {
     font-weight: 700;
-    font-size: 1.2rem;
+    font-size: 1rem;
+    font-family: 'samuraifont', cursive;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .blood-count {
@@ -834,10 +839,6 @@ footer a:hover::after {
     align-items: center;
 }
 
-.team-name-header {
-    font-weight: 700;
-    font-size: 1.2rem;
-}
 
 .blood-count {
     background-color: var(--accent-color);
@@ -894,4 +895,56 @@ footer a:hover::after {
     /* font-weight: 900; */
     vertical-align: middle;
     margin: 0 2px;
+}
+
+/* Add these styles to highlight new bloods */
+.new-blood {
+    background-color: rgba(255, 0, 0, 0.1);
+    animation: fadeIn 0.5s ease-out;
+}
+
+.new-indicator {
+    color: #ff0000;
+    font-weight: bold;
+    margin-left: 5px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 } 
+
+@keyframes flicker {
+    0% { opacity: 1; }
+    5% { opacity: 0.6; }
+    10% { opacity: 1; }
+    15% { opacity: 0.6; }
+    20% { opacity: 1; }
+    25% { opacity: 0.6; }
+    30% { opacity: 1; }
+    35% { opacity: 0.6; }
+    40% { opacity: 1; }
+    45% { opacity: 0.6; }
+    50% { opacity: 1; }
+    55% { opacity: 0.6; }
+    60% { opacity: 1; }
+    65% { opacity: 0.6; }
+    70% { opacity: 1; }
+    75% { opacity: 0.6; }
+    80% { opacity: 1; }
+    85% { opacity: 0.6; }
+    90% { opacity: 1; }
+    95% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+.flicker-text {
+    animation: flicker 16s infinite;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
