@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -10,13 +12,12 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 const PORT = process.env.PORT || 3000;
-const CTFD_URL = 'https://airtech.aucssociety.com';
+const CTFD_URL = process.env.CTFD_URL;
 
-// CTFd credentials - using token instead of username/password
-const CTFD_TOKEN = process.env.CTFD_TOKEN || 'REDACTED';
+const CTFD_TOKEN = process.env.CTFD_TOKEN;
 
-// Set default timeout and handle rate limiting
-axios.defaults.timeout = 1000;
+// default timeout and handle rate limiting
+axios.defaults.timeout = 4000;
 
 // Middleware
 app.use(cors());
@@ -25,7 +26,7 @@ app.use(express.static(path.join(__dirname, '.')));
 app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use('/scoreboard/static', express.static(path.join(__dirname, 'scoreboard', 'static')));
 
-// Cache for teams and challenges data
+// Caching 
 let teamsCache = null;
 let challengesCache = null;
 let lastSolvesData = null;
@@ -242,32 +243,73 @@ async function getFirstBloods() {
     try {
         console.log("Fetching first bloods data...");
         
-        // Get fresh submissions data directly from CTFd API
-        const submissionsResponse = await ctfdApiRequest('/api/v1/submissions?type=correct');
+        // Get ALL submissions by paginating through the results
+        let allSubmissions = [];
+        let page = 1;
+        let hasMore = true;
         
-        if (!submissionsResponse || !submissionsResponse.data) {
-            console.error("No submissions data returned from API:", submissionsResponse);
-            throw new Error('Failed to fetch submissions');
+        while (hasMore) {
+            console.log(`Fetching submissions page ${page}...`);
+            const submissionsResponse = await ctfdApiRequest(`/api/v1/submissions?type=correct&page=${page}&per_page=100`);
+            
+            if (!submissionsResponse || !submissionsResponse.data) {
+                console.error("No submissions data returned from API:", submissionsResponse);
+                break;
+            }
+            
+            allSubmissions = allSubmissions.concat(submissionsResponse.data);
+            
+            // Check if we've reached the last page
+            if (submissionsResponse.data.length < 100) {
+                hasMore = false;
+            } else {
+                page++;
+            }
         }
+        
+        console.log(`Total submissions fetched across all pages: ${allSubmissions.length}`);
         
         // Get challenges and teams data for enrichment
         const challenges = await getChallenges();
         const teams = await getTeams();
         
-        // Group solves by challenge_id to find first blood for each
-        const challengeSolves = {};
+        console.log(`Total challenges in system: ${Object.keys(challenges).length}`);
         
-        submissionsResponse.data.forEach(solve => {
+        // Create a map to store the earliest solve for each challenge
+        const firstBloods = new Map();
+        const allSolvesByChallenge = new Map();
+        
+        // First, group all submissions by challenge
+        allSubmissions.forEach(solve => {
             const challengeId = solve.challenge_id;
-            
-            if (!challengeSolves[challengeId] || new Date(solve.date) < new Date(challengeSolves[challengeId].date)) {
-                challengeSolves[challengeId] = solve;
+            if (!allSolvesByChallenge.has(challengeId)) {
+                allSolvesByChallenge.set(challengeId, []);
             }
+            allSolvesByChallenge.get(challengeId).push(solve);
         });
         
-        // Format response with challenge details and team names
-        const firstBloods = Object.values(challengeSolves).map(solve => {
+        // For each challenge, find the earliest solve
+        allSolvesByChallenge.forEach((solves, challengeId) => {
+            // Sort solves by date for this challenge
+            solves.sort((a, b) => new Date(a.date) - new Date(b.date));
+            // The first one after sorting is the first blood
+            if (solves.length > 0) {
+                firstBloods.set(challengeId, solves[0]);
+            }
+            
+            // Log all solves for this challenge
+            const challenge = challenges[challengeId] || { name: `Challenge ${challengeId}` };
+            console.log(`\nChallenge: ${challenge.name}`);
+            console.log(`Total solves: ${solves.length}`);
+            solves.forEach(solve => {
+                console.log(`- ${getTeamNameFromSolve(solve, teams)} at ${solve.date}`);
+            });
+        });
+        
+        // Convert the map to an array and format the response
+        const formattedBloods = Array.from(firstBloods.values()).map(solve => {
             const challenge = challenges[solve.challenge_id] || {};
+            const teamName = getTeamNameFromSolve(solve, teams);
             
             return {
                 id: solve.challenge_id,
@@ -275,17 +317,30 @@ async function getFirstBloods() {
                 category: challenge.category || 'Unknown',
                 value: challenge.value || 0,
                 team_id: solve.team_id || solve.user_id,
-                team: getTeamNameFromSolve(solve, teams),
-                date: solve.date,
-                raw_solve: solve // Include for debugging
+                team: teamName,
+                date: solve.date
             };
         });
         
         // Sort by date
-        firstBloods.sort((a, b) => new Date(a.date) - new Date(b.date));
+        formattedBloods.sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        console.log(`Returning ${firstBloods.length} first bloods`);
-        return firstBloods;
+        // Log detailed information
+        console.log('\nFirst bloods summary:');
+        formattedBloods.forEach(blood => {
+            console.log(`- ${blood.name} (${blood.category}): ${blood.team} at ${blood.date}`);
+        });
+        
+        // Log challenges without first bloods
+        const challengesWithoutBloods = Object.values(challenges).filter(
+            challenge => !formattedBloods.some(blood => blood.id === challenge.id)
+        );
+        console.log(`\nChallenges without first bloods (${challengesWithoutBloods.length}):`);
+        challengesWithoutBloods.forEach(challenge => {
+            console.log(`- ${challenge.name} (${challenge.category})`);
+        });
+        
+        return formattedBloods;
     } catch (error) {
         console.error("Error in getFirstBloods:", error);
         throw error;
@@ -807,4 +862,119 @@ server.listen(PORT, () => {
     
     // Initialize data collection
     initializeData();
+});
+
+// Endpoint to get all challenges and their solve status
+app.get('/api/challenges-status', async (req, res) => {
+    try {
+        const challenges = await getChallenges();
+        const firstBloods = await getFirstBloods();
+        
+        // Create a map of challenge IDs that have first bloods
+        const bloodMap = new Map(firstBloods.map(blood => [blood.id, blood]));
+        
+        // Create status report for all challenges
+        const statusReport = Object.values(challenges).map(challenge => ({
+            id: challenge.id,
+            name: challenge.name,
+            category: challenge.category,
+            has_blood: bloodMap.has(challenge.id),
+            first_blood: bloodMap.get(challenge.id)?.team || null
+        }));
+        
+        res.json({
+            total_challenges: statusReport.length,
+            challenges_with_blood: firstBloods.length,
+            details: statusReport
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: 'Failed to fetch challenge status',
+            message: error.message
+        });
+    }
+});
+
+// Endpoint to get raw submissions data for debugging
+app.get('/api/debug-submissions', async (req, res) => {
+    try {
+        const submissions = await ctfdApiRequest('/api/v1/submissions?type=correct');
+        res.json({
+            total_submissions: submissions.data.length,
+            submissions: submissions.data
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: 'Failed to fetch debug data',
+            message: error.message
+        });
+    }
+});
+
+// Add a new endpoint to get detailed statistics
+app.get('/api/blood-stats', async (req, res) => {
+    try {
+        const challenges = await getChallenges();
+        const submissions = await ctfdApiRequest('/api/v1/submissions?type=correct&page_size=100000');
+        const firstBloods = await getFirstBloods();
+        
+        const stats = {
+            total_challenges: Object.keys(challenges).length,
+            total_submissions: submissions.data.length,
+            total_first_bloods: firstBloods.length,
+            challenges_without_blood: Object.values(challenges)
+                .filter(challenge => !firstBloods.some(blood => blood.id === challenge.id))
+                .map(challenge => ({
+                    id: challenge.id,
+                    name: challenge.name,
+                    category: challenge.category
+                })),
+            first_bloods: firstBloods
+        };
+        
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({
+            error: 'Failed to fetch blood statistics',
+            message: error.message
+        });
+    }
+});
+
+// Add a new endpoint to get all solves for a specific challenge
+app.get('/api/challenge-solves/:challengeName', async (req, res) => {
+    try {
+        const challenges = await getChallenges();
+        const submissions = await ctfdApiRequest('/api/v1/submissions?type=correct');
+        const teams = await getTeams();
+        
+        // Find the challenge by name
+        const challenge = Object.values(challenges).find(
+            c => c.name.toLowerCase() === req.params.challengeName.toLowerCase()
+        );
+        
+        if (!challenge) {
+            return res.status(404).json({ error: 'Challenge not found' });
+        }
+        
+        // Get all solves for this challenge
+        const challengeSolves = submissions.data
+            .filter(solve => solve.challenge_id === challenge.id)
+            .map(solve => ({
+                team: getTeamNameFromSolve(solve, teams),
+                date: solve.date
+            }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        res.json({
+            challenge: challenge.name,
+            total_solves: challengeSolves.length,
+            solves: challengeSolves
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: 'Failed to fetch challenge solves',
+            message: error.message
+        });
+    }
 });
