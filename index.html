@@ -1,14 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Samurai CTF Blood Announcer</title>
+    <title>CTF Blood Announcer</title>
     <link rel="stylesheet" href="static/css/styles.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩸</text></svg>">
-    <!-- <meta http-equiv="refresh" content="15"> -->
+    <!-- <meta http-equiv="refresh" content="6"> -->
     <!-- <script>
         setTimeout(() => {
         window.location.reload();
@@ -38,8 +37,7 @@
             <h2 class="scoreboard-title"><span class="kanji"> </span><span>FIRST BLOODS</span></h2>
             
             <div class="filter-controls">
-                <!-- REFRESH BUTTON FOR TESTING -->
-                <!-- <button id="refresh-btn" class="samurai-btn"><span class="btn-icon">⟳</span> Refresh</button> -->
+                <button onclick="playBloodSound()" class="samurai-btn"><span class="btn-icon">🔊</span> Play Blood Sound</button>
             </div>
             
             <div class="scoreboard-wrapper">
@@ -73,14 +71,9 @@
         <div class="footer-pattern"></div>
         <p >Made by <a href="https://github.com/kumailzaidi23/" target="_blank">Strangek</a></p>
     </footer>
-
-    <!-- Hidden audio element for blood sound -->
     <audio id="blood-sound-element" preload="auto" style="display:none;">
-        <source src="/scoreboard/static/sounds/blood.mp3" type="audio/mpeg">
-        <source src="scoreboard/static/sounds/blood.mp3" type="audio/mpeg">
         <source src="/static/sounds/blood.mp3" type="audio/mpeg">
     </audio>
-
     <script src="static/js/script.js"></script>
 </body>
 

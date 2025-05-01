@@ -723,7 +723,7 @@ app.get('/test-sound', (req, res) => {
             <h1>Sound Test Page</h1>
             <p>Click buttons to test different sound file paths:</p>
             
-            <button onclick="playSound('/scoreboard/static/sounds/blood.mp3')">Play /scoreboard/static/sounds/blood.mp3</button><br><br>
+            <button onclick="playSound('/static/sounds/blood.mp3')">Play /static/sounds/blood.mp3</button><br><br>
             <button onclick="playSound('/static/sounds/blood.mp3')">Play /static/sounds/blood.mp3</button><br><br>
             <button onclick="playSound('static/sounds/blood.mp3')">Play static/sounds/blood.mp3</button><br><br>
             <button onclick="playSound('scoreboard/static/sounds/blood.mp3')">Play scoreboard/static/sounds/blood.mp3</button><br><br>

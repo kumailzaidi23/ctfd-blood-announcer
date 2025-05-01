@@ -2,7 +2,7 @@
 
 A beautiful, samurai-themed first bloods display for CTFd instances.
 
-![Screenshot](/static/img/scoreboard.png)
+![Screenshot](./static/img/scoreboard.png)
 
 ## Setup
 

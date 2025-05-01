@@ -1,72 +1,69 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Constants
-    const FIRSTBLOODS_API_URL = '/api/firstbloods'; // New dedicated endpoint
-    const MOCK_MODE = false; // Set to true if CTFd API is unreachable
+    const FIRSTBLOODS_API_URL = '/api/firstbloods';
+    const MOCK_MODE = false;
     
     // DOM Elements
     const scoreboardBody = document.getElementById('scoreboard-body');
-    const refreshBtn = document.getElementById('refresh-btn');
     const bloodSoundElement = document.getElementById('blood-sound-element');
     
     // State
     let bloodsData = [];
-    let knownSolves = new Set(); // Track solves we've already seen
+    let knownSolves = new Set();
     let lastFetchTime = 0;
-    let soundEnabled = false;
     
-    // Enable sound on user interaction (required by most browsers)
+    // Audio context initialization
+    let audioContext;
+    
+    // Audio context handler
     function enableSound() {
-        if (soundEnabled) return;
-        
-        // Try to play a silent sound to enable audio
-        if (bloodSoundElement) {
-            const silentPlay = bloodSoundElement.play();
-            if (silentPlay) {
-                silentPlay.then(() => {
-                    console.log('Audio playback enabled by user interaction');
-                    bloodSoundElement.pause();
-                    bloodSoundElement.currentTime = 0;
-                    soundEnabled = true;
-                }).catch(e => {
-                    console.warn('Could not enable audio yet:', e);
-                });
-            }
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AudioContext();
+            
+            // Create empty buffer
+            const buffer = audioContext.createBuffer(1, 1, 22050);
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start(0);
+            
+            audioContext.resume().then(() => {
+                console.log('Audio context successfully initialized');
+            });
+        } catch(e) {
+            console.error('Audio context initialization failed:', e);
         }
     }
     
-    // Enable sound on various user interactions
-    document.addEventListener('click', enableSound, { once: false });
-    document.addEventListener('keydown', enableSound, { once: false });
-    document.addEventListener('touchstart', enableSound, { once: false });
+    // Manual sound play function
+    window.playBloodSound = function() {
+        if (bloodSoundElement) {
+            bloodSoundElement.currentTime = 0;
+            bloodSoundElement.play()
+                .then(() => console.debug('Blood sound played successfully'))
+                .catch(e => console.error('Playback error:', e));
+        } else {
+            console.error('Blood sound element not found');
+        }
+    };
     
     // Initialize
     console.log('Blood announcer initialized');
-    fetchBloods(false);  // Initial load with UI update
+    fetchBloods(false);
     
     // Set up polling
     function setupPolling() {
         console.log('Setting up polling - checking for blood every 5 seconds');
-        // Check for new bloods every 5 seconds
-        setInterval(() => fetchBloods(true), 5 * 1000);
-        
-        // Full UI refresh every minute
-        setInterval(() => fetchBloods(false), 60 * 1000);
+        setInterval(() => fetchBloods(true), 5000);
+        setInterval(() => fetchBloods(false), 60000);
     }
     
-    // Start polling after initial load
     setupPolling();
     
-    // Event Listeners
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            fetchBloods(false);
-        });
-    }
-    
-    // Functions
+    // Fetch blood data
     async function fetchBloods(silent = false) {
         if (!silent) {
-            // Show loading state if not silent refresh
             scoreboardBody.innerHTML = `
                 <tr class="loading-row">
                     <td colspan="4">Loading first blood data...</td>
@@ -75,143 +72,87 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            // Use the dedicated first bloods endpoint
             const url = MOCK_MODE ? '/api/mock/solves' : FIRSTBLOODS_API_URL;
-            
-            // Fetch the data
             const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Failed to fetch first bloods');
-            }
             
-            let newBloods = [];
-            try {
-                const data = await response.json();
-                
-                // Handle different response formats
-                if (Array.isArray(data)) {
-                    newBloods = data;
-                } else if (data && typeof data === 'object') {
-                    if (Array.isArray(data.data)) {
-                        newBloods = data.data;
-                    } else {
-                        console.warn('Response has unexpected format:', data);
-                        newBloods = [];
-                    }
-                }
-            } catch (jsonError) {
-                console.error('Error parsing JSON:', jsonError);
-                throw new Error('Failed to parse response data');
-            }
+            if (!response.ok) throw new Error('Failed to fetch first bloods');
             
-            // Process and update state with notifications
-            const currentTime = Date.now();
+            const data = await response.json();
+            const newBloods = Array.isArray(data) ? data : (data.data || []);
             
-            // For first time, just initialize known solves
+            // Process new bloods
             if (lastFetchTime === 0) {
-                if (Array.isArray(newBloods)) {
-                    newBloods.forEach(blood => {
-                        if (blood && blood.challenge_id) {
-                            const teamId = blood.team_id || (blood.team ? blood.team.id : 'unknown');
-                            const bloodId = `${blood.challenge_id}-${teamId}`;
-                            knownSolves.add(bloodId);
-                        }
-                    });
-                }
-            } 
-            // For subsequent fetches, check for new bloods and notify
-            else if (Array.isArray(newBloods)) {
+                newBloods.forEach(blood => trackBlood(blood));
+            } else {
                 announceNewBloods(newBloods);
             }
             
-            lastFetchTime = currentTime;
+            lastFetchTime = Date.now();
+            bloodsData = newBloods;
             
-            // Update our state
-            bloodsData = newBloods || [];
-            
-            // Only render if not silent refresh
             if (!silent) {
                 renderBloods(bloodsData);
                 generateBloodStats(bloodsData);
             }
             
-            // Log success
-            console.log(`
-                ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ 
-                初血 FIRST BLOODS LOADED: ${(newBloods || []).length}
-                ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️ ⚔️
-            `);
+            console.log(`初血 FIRST BLOODS LOADED: ${newBloods.length}`);
         } catch (error) {
             console.error('Error fetching data:', error);
-            if (!silent) {
-                scoreboardBody.innerHTML = `
-                    <tr class="error-row">
-                        <td colspan="4">
-                            Error loading first blood data. Please check your connection or try again later.
-                            <br><br>
-                            <button id="retry-btn" class="samurai-btn">Retry</button>
-                        </td>
-                    </tr>
-                `;
-                
-                // Add retry button functionality
-                document.getElementById('retry-btn').addEventListener('click', () => fetchBloods(false));
-            }
+            handleFetchError(silent);
         }
     }
     
-    function announceNewBloods(bloods) {
-        // Ensure bloods is an array before trying to iterate
-        if (!Array.isArray(bloods)) {
-            console.warn('announceNewBloods received non-array data:', bloods);
+    function trackBlood(blood) {
+        if (!blood?.challenge_id) return;
+        const teamId = blood.team_id || (blood.team?.id || 'unknown');
+        knownSolves.add(`${blood.challenge_id}-${teamId}`);
+    }
+    
+    function handleFetchError(silent) {
+        if (!silent) {
+            scoreboardBody.innerHTML = `
+                <tr class="error-row">
+                    <td colspan="4">
+                        Error loading data. 
+                        <button onclick="fetchBloods(false)" class="samurai-btn">Retry</button>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+    function announceNewBloods(newBloods) {
+        if (!Array.isArray(newBloods)) {
+            console.warn('Invalid bloods data:', newBloods);
             return;
         }
         
-        let newBloodsFound = [];
+        const newBloodsFound = [];
         
-        bloods.forEach(blood => {
-            // Skip if blood object doesn't have required properties
-            if (!blood || !blood.challenge_id || (!blood.team_id && !blood.team)) {
-                return;
-            }
+        newBloods.forEach(blood => {
+            if (!blood?.challenge_id) return;
             
-            // Generate a unique ID for this blood
-            const teamId = blood.team_id || (blood.team ? blood.team.id : 'unknown');
+            const teamId = blood.team_id || (blood.team?.id || 'unknown');
             const bloodId = `${blood.challenge_id}-${teamId}`;
             
-            // Check if we've already seen this solve
             if (!knownSolves.has(bloodId)) {
-                // Add to known solves
                 knownSolves.add(bloodId);
-                
-                // Only add for announcement if it's recent (within last 15 minutes)
-                const solveTime = new Date(blood.date || Date.now());
-                const now = new Date();
-                const minutesAgo = (now - solveTime) / (1000 * 60);
-                
-                if (minutesAgo <= 15) {
+                if (isRecentBlood(blood)) {
                     newBloodsFound.push(blood);
                 }
             }
         });
         
-        // Create announcements for new bloods
         if (newBloodsFound.length > 0) {
-            console.log(`🔊 NEW FIRST BLOODS DETECTED: ${newBloodsFound.length} 🔊`);
-            
-            // Show visual indicator
+            console.log(`🔊 NEW FIRST BLOODS: ${newBloodsFound.length} 🔊`);
             showBloodIndicator();
-            
-            // Play sound immediately when new bloods are found
-            playDingSound();
-            
-            // Create visual notifications with slight delay between them
-            newBloodsFound.forEach((blood, index) => {
-                setTimeout(() => {
-                    createBloodAnnouncement(blood);
-                }, index * 500); // Show each notification with 500ms delay
-            });
+            newBloodsFound.forEach(createAnnouncement);
         }
+    }
+    
+    function isRecentBlood(blood) {
+        const solveTime = new Date(blood.date || Date.now());
+        return (Date.now() - solveTime) <= 900000; // 15 minutes
     }
     
     function createBloodAnnouncement(blood) {
@@ -287,119 +228,6 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             indicator.remove();
         }, 3000);
-    }
-    
-    // Function to play a blood sound
-    function playDingSound() {
-        console.log('Playing blood sound');
-        
-        try {
-            // Try to play the HTML audio element first
-            if (bloodSoundElement) {
-                bloodSoundElement.currentTime = 0;
-                bloodSoundElement.volume = 0.7;
-                
-                const playPromise = bloodSoundElement.play();
-                if (playPromise) {
-                    playPromise.then(() => {
-                        console.log('SUCCESS: Blood sound is playing!');
-                    }).catch(error => {
-                        console.error('Error playing blood sound from element:', error);
-                        playAudioFromScratch();
-                    });
-                }
-                return;
-            }
-            
-            // Fallback to creating audio from scratch
-            playAudioFromScratch();
-            
-        } catch (e) {
-            console.error("Could not play blood sound:", e);
-            playFallbackSound();
-        }
-    }
-    
-    // Create and play an audio element programmatically
-    function playAudioFromScratch() {
-        console.log('Trying to play sound from scratch');
-        
-        const audio = new Audio('/scoreboard/static/sounds/blood.mp3');
-        audio.volume = 0.7;
-        
-        // Using both of these for broader browser support
-        audio.muted = false;
-        
-        // Try to play
-        const playPromise = audio.play();
-        
-        // Handle promise if supported
-        if (playPromise !== undefined) {
-            playPromise.then(() => {
-                console.log('SUCCESS: Blood sound is playing from scratch!');
-            }).catch(error => {
-                console.error('Error playing blood sound from scratch:', error);
-                
-                // Try alternate paths
-                tryNextPath([
-                    'scoreboard/static/sounds/blood.mp3',
-                    '/static/sounds/blood.mp3',
-                    'static/sounds/blood.mp3',
-                    '../scoreboard/static/sounds/blood.mp3'
-                ], 0);
-            });
-        }
-    }
-    
-    // Helper function to try multiple audio paths
-    function tryNextPath(paths, index) {
-        if (index >= paths.length) {
-            console.error("All paths failed, using fallback sound");
-            playFallbackSound();
-            return;
-        }
-        
-        const path = paths[index];
-        console.log(`Trying path: ${path}`);
-        
-        const audioAlt = new Audio(path);
-        audioAlt.volume = 0.7;
-        audioAlt.play().catch(err => {
-            console.error(`Failed with path ${path}:`, err);
-            tryNextPath(paths, index + 1);
-        });
-    }
-    
-    // Fallback sound function using Web Audio API
-    function playFallbackSound() {
-        try {
-            // Create audio context
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
-            
-            // Create oscillator for the ding sound
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
-            // Connect nodes
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
-            // Set oscillator properties
-            oscillator.type = 'sine';
-            oscillator.frequency.value = 880; // A5 note
-            
-            // Set volume envelope
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            
-            // Start and stop
-            oscillator.start(audioCtx.currentTime);
-            oscillator.stop(audioCtx.currentTime + 0.3);
-        } catch (e) {
-            console.error("Could not play fallback sound:", e);
-        }
     }
     
     function renderBloods(data) {
