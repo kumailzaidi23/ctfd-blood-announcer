@@ -15,6 +15,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Audio context initialization
     let audioContext;
     
+    // Add keyboard event listener for "/" key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === '/') {
+            playBloodSound();
+        }
+    });
+    
     // Audio context handler
     function enableSound() {
         try {
